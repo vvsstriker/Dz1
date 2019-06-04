@@ -1,0 +1,290 @@
+#include "stdafx.h"
+#ifndef RBTREE_H
+#define RBTREE_H
+template<typename D, typename K>
+class rbtree: public bst<D,K>{
+    struct rbet: public bst<D,K>::et{
+        rbet* p;
+        bool color;
+    };
+
+    void del(rbet*&);
+    rbet* copy(rbet*);
+    void lrotate(rbet*);
+    void rrotate(rbet*);
+    void show(rbet*, __int64, HANDLE&);
+    bool app(rbet*&,K&,D&,rbet*);
+    void fix_ins(rbet*);
+    void rbdelnod(rbet*);
+    rbet* tree_sucessors(rbet* y);
+    void del_fix(rbet* x);
+
+public:
+    rbtree(void);
+    rbtree(rbtree&);
+    virtual ~rbtree(void);
+
+    void clear(void);
+    virtual bool appkey(K&,D&);
+    virtual bool delkey(K&);
+    virtual void show(void);
+};
+
+
+template<typename D,typename K>
+rbtree<D,K>::rbtree(void){
+    nil_spase=new rbtree<D,K>::rbet;
+    NIL->l=NIL->r=NIL;
+    ((rbet*)NIL)->p=(rbet*)NIL;
+    ((rbet*)NIL)->color=false;
+    itcount=0;  count=0; edit=false;
+    root=NIL;
+}
+
+template<typename D,typename K>
+rbtree<D,K>::rbtree(rbtree& t){
+    root = copy((rbet*&)(t.root));
+    count=t.count;
+    edit=t.edit;
+}
+
+template<typename D, typename K>
+rbtree<D,K>::~rbtree(void){
+    del((rbet*&)root);
+    root=NULL;count=0;
+}
+
+template<typename D,typename K>
+void rbtree<D,K>::clear(void){
+    del((rbet*&)root);
+    root=NIL;
+    count=0;
+    edit=false;
+}
+
+template<typename D,typename K>
+bool rbtree<D,K>::appkey(K& key,D& data){
+    itcount=0;
+    if(app((rbet*&)root, key,data,(rbet*)NIL))return edit=true;
+    return false;
+}
+
+template<typename D,typename K>
+bool rbtree<D,K>::delkey(K& key){
+    rbtree<D,K>::rbet* x=(rbet*)root;
+    itcount=0;
+    while(x->key != key && x!= NIL){x=(rbet*)(x->link(x->key < key));itcount++;};
+    if(x == NIL)return false;
+    rbdelnod(x);
+    ((rbet*)NIL)->p=(rbet*)NIL;
+    count--;
+    return edit=true;
+}
+
+template<typename D, typename K>
+void rbtree<D,K>::show(void){
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    show((rbet*)root,0,hOut);
+}
+
+
+template<typename D,typename K>
+void rbtree<D,K>::del(rbet*& p){
+    if(p->l!=NIL)del(((rbet*&)(p->l)));
+    if(p->r!=NIL)del(((rbet*&)(p->r)));
+    if(p!=NIL){p->l=p->r=NIL;delete p;p=(rbet*)NIL;}
+}
+
+template<typename D, typename K>
+typename rbtree<D,K>::rbet* rbtree<D,K>::copy(rbet* p){
+    rbtree<D,K>::rbet new__rbroot=NIL;
+    if(p!=NIL){
+        new__rbroot=new rbtree<D,K>::rbet;
+        new__rbroot={*(new K(p->key)),*(new D(p->data)),NIL,NIL,NIL,p->color};
+    }
+    if(p->l!=NIL)return new__rbroot.l=copy(p->l);
+    if(p->r!=NIL)return new__rbroot.r=copy(p->l);
+    return &new__rbroot;
+}
+
+template<typename D,typename K>
+void rbtree<D,K>::lrotate(rbet* x){
+    rbtree<D,K>::rbet* y=(rbet*)(x->r);
+    x->r=y->l;
+    if(y->l != NIL)((rbet*)(y->l))->p=x;
+    y->p=x->p;
+    if(x->p == NIL)root=y;
+    else if(x==x->p->l) x->p->l=y;
+    else x->p->r=y;
+    y->l=x;
+    x->p=y;
+}
+
+template<typename D, typename K>
+void rbtree<D,K>::rrotate(rbet* x){
+    rbtree<D,K>::rbet* y=(rbet*)(x->l);
+    x->l=y->r;
+    if(y->r != NIL)((rbet*)(y->r))->p=x;
+    y->p=x->p;
+    if(x->p == NIL)root=y;
+    else if(x==x->p->r) x->p->r=y;
+    else x->p->l=y;
+    y->r=x;
+    x->p=y;
+}
+
+template<typename D, typename K>
+void rbtree<D,K>::show(rbet* t, __int64 level, HANDLE& hOut){
+    if(t!=NIL){
+        show((rbet*)(t->r),level+1,hOut);
+        for(__int64 i=0; i<level*2;i++)std::cout<<'_';
+        if(t->color)SetConsoleTextAttribute(hOut, FOREGROUND_RED);
+        std::cout<<t->key<<'\n';
+        SetConsoleTextAttribute(hOut, FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN);
+        show((rbet*)(t->l),level+1,hOut);
+    }
+}
+
+template<typename D, typename K>
+bool rbtree<D,K>::app(rbet*& sheet,K& key,D& data,rbet* parant){
+    itcount++;
+    if(sheet == NIL){
+        sheet=new rbtree<D,K>::rbet;
+        sheet->p=parant;
+        sheet->l=sheet->r=NIL;
+        sheet->data=data;
+        sheet->key=key;
+        fix_ins(sheet);
+        count++;
+        return true;
+    }
+    if(sheet->key == key)return false;
+    return app(reinterpret_cast<rbet*&>(sheet->link(sheet->key < key)),key,data,sheet);
+}
+
+template<typename D, typename K>
+void rbtree<D,K>::fix_ins(rbet* x){
+    x->color=true;
+    rbtree<D,K>::rbet* y=x;
+    while(x !=root && x->p->color){
+        if(x->p == x->p->p->l){
+            y=((rbet*)(x->p->p->r));
+            if(y->color){
+                y->color=x->p->color=false;
+                x->p->p->color=true;
+                x=x->p->p;
+            }
+            else if( x == x->p->r){
+                x=x->p;
+                lrotate(x);
+            }
+            else{
+                x->p->color=false;
+                x->p->p->color=true;
+                rrotate(x->p->p);
+            }
+        }
+        else {
+            y=((rbet*)(x->p->p->l));
+            if(y->color){
+                y->color=x->p->color=false;
+                x->p->p->color=true;
+                x=x->p->p;
+            }
+            else if( x == x->p->l){
+                x=x->p;
+                rrotate(x);
+            }
+            else{
+                x->p->color=false;
+                x->p->p->color=true;
+                lrotate(x->p->p);
+            }
+        }
+    }
+    ((rbet*)root)->color=false;
+}
+
+template<typename D, typename K>
+void rbtree<D,K>::rbdelnod(rbet* z){
+    rbtree<D,K>::rbet* y=z,*x=z;
+    if(z->l==NIL || z->r==NIL)y=z;
+    else y=tree_sucessors(z);
+    if(y->l != NIL)x=(rbet*)(y->l);
+    else x=(rbet*)(y->r);
+    x->p=y->p;
+    if(y->p==NIL)root=x;
+    else y->p->link(y==y->p->r)=x;
+    if(y != z){z->key=y->key; z->data=y->data;}
+    if(!y->color)del_fix(x);
+    delete y;
+}
+
+template<typename D, typename K>
+typename rbtree<D,K>::rbet* rbtree<D,K>::tree_sucessors(rbet* y){
+    itcount++;
+    if(y->l != NIL)
+        for(y=(rbet*)(y->l);y->r != NIL;itcount++,y=(rbet*)(y->r));
+    else
+        for(y=(rbet*)(y->r);y->l != NIL;itcount++,y=(rbet*)(y->l));
+    return y;
+}
+
+template<typename D, typename K>
+void rbtree<D,K>::del_fix(rbet* x){
+    rbtree<D,K>::rbet* w;
+    while(x != root && !x->color){
+        if(x==x->p->l){
+            w=(rbet*)(x->p->r);
+            if(w->color){
+                w->color=false;
+                x->p->color=true;
+                lrotate(x->p);
+                w=(rbet*)(x->p->r);
+            }
+            if(!((rbet*)(w->l))->color && !((rbet*)(w->r))->color){
+                w->color=true;
+                x=x->p;
+            }
+            else if(!((rbet*)(w->r))->color){
+                ((rbet*)(w->l))->color=false;
+                w->color=true;
+                rrotate(w);
+                w=(rbet*)(x->p->r);
+            }
+            else{
+                w->color=x->p->color;
+                x->p->color=((rbet*)(w->r))->color=false;
+                lrotate(x->p);
+                x=((rbet*)root);
+            }
+        }
+        else{
+            w=(rbet*)(x->p->l);
+            if(w->color){
+                w->color=false;
+                x->p->color=true;
+                rrotate(x->p);
+                w=(rbet*)(x->p->l);
+            }
+            if(!((rbet*)(w->r))->color && !((rbet*)(w->l))->color){
+                w->color=true;
+                x=x->p;
+            }
+            else if(!((rbet*)(w->l))->color){
+                ((rbet*)(w->r))->color=false;
+                w->color=true;
+                lrotate(w);
+                w=(rbet*)(x->p->l);
+            }
+            else{
+                w->color=x->p->color;
+                x->p->color=((rbet*)(w->l))->color=false;
+                rrotate(x->p);
+                x=((rbet*)root);
+            }
+        }
+    }
+    x->color=false;
+}
+#endif

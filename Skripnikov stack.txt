@@ -1,0 +1,70 @@
+#include <iostream.h>
+#include <stdlib.h>
+
+
+  struct Node
+    {
+       int x;
+       Node *Next;
+    };
+
+
+
+class List
+{
+    Node *Head, *Tail;
+public:
+     List():Head(NULL),Tail(NULL){};
+     ~List();
+     void Add(int x);
+     void Show();
+ };
+
+
+List::~List()
+{
+ Node *temp = Head;
+
+   while (temp != NULL)
+   {
+     temp = Head->Next;
+     delete Head;
+     
+     Head = temp;
+   }
+}
+
+
+void List::Add(int x)
+{
+    Node *temp = new Node;
+    temp->x = x;
+    temp->Next = NULL;
+
+    if (Head != NULL)
+    {
+        Tail->Next = temp;
+        Tail = temp;
+    }     else Head = Tail = temp;
+}
+
+
+void List::Show()
+{
+    Node *temp = Head;
+     while (temp != NULL)
+     {
+         cout << temp->x << " ";
+         temp = temp->Next;
+     }
+    cout << endl;
+}
+
+int main()
+{
+   List lst;
+   system("CLS");
+
+   system("PAUSE");
+   return 0;
+}
